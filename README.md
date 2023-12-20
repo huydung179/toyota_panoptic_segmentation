@@ -35,8 +35,9 @@ python scripts/demo.py --config-file <config.yaml>  --input <input_image_file> \
 Simple user example using our pretrained model previded in the Models section:
 ```
 python scripts/demo.py --config-file ./configs/demo_config.yaml --input media/figs/test.png --pretrained-weight cvpr_realtime_pano_cityscapes_standalone_no_prefix.pth
-
+```
 Demo with camera:
+```
 python scripts/demo_video.py --config-file ./configs/demo_config.yaml --pretrained-weight cvpr_realtime_pano_cityscapes_standalone_no_prefix.pth
 ```
 
