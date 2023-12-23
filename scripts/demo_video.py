@@ -1,6 +1,8 @@
 # Copyright 2020 Toyota Research Institute.  All rights reserved.
 
 # This script provides a demo inference a model trained on Cityscapes dataset.
+from collections import deque
+import os
 import time
 import warnings
 import argparse
@@ -17,6 +19,9 @@ from realtime_panoptic.config import cfg
 import realtime_panoptic.data.panoptic_transform as P
 from realtime_panoptic.utils.visualization import visualize_segmentation_image
 from utils import VideoGet
+
+null_fd = os.open(os.devnull, os.O_WRONLY)
+os.dup2(null_fd, 2)
 
 cityscapes_colormap = np.array([
     [128, 64, 128],
@@ -43,6 +48,24 @@ cityscapes_colormap = np.array([
 cityscapes_instance_label_name = [
     'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle']
 warnings.filterwarnings("ignore", category=UserWarning)
+
+
+class AverageMeter(object):
+    def __init__(self, window_size=10):
+        self.window_size = window_size
+        self.reset()
+
+    def reset(self):
+        self.val = deque(maxlen=self.window_size)
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val.append(val)
+        self.count = min(self.count + n, self.window_size)
+
+    @property
+    def avg(self):
+        return sum(self.val) / self.count
 
 
 def wait_for_stream(vid_getter):
@@ -95,6 +118,8 @@ def demo():
                     std=cfg.input.pixel_std, to_bgr255=cfg.input.to_bgr255),
     ])
 
+    avg = AverageMeter()
+
     vid = VideoGet()
     vid.stream.set(cv2.CAP_PROP_FOURCC,
                    cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
@@ -141,8 +166,8 @@ def demo():
         im1.set_data(frame[:, :, ::-1])
         im2.set_data(seg_vis.astype('uint8')[:, :, ::-1])
 
-        total_time = time.time() - start
-        print("Inference time: {:.2f} ms".format(total_time * 1000))
+        avg.update(time.time() - start)
+        print(f"FPS: {1 / avg.avg:.3f}")
 
     ani = FuncAnimation(plt.gcf(), update, interval=1)
     plt.show()
